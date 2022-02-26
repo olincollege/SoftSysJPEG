@@ -2,7 +2,7 @@
 #include <stdlib.h>
 int main(int argc, char const *argv[]) {
     FILE *file;
-    file = fopen("jpegstructure.jpg", "rt");
+    file = fopen("include/jpegstructure.jpg", "rt");
     unsigned char *buffer;
     unsigned long fileLen;
     // Get file length
