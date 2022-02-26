@@ -1,3 +1,7 @@
+Run from root dir
+
 ```cmake -B build/ -S src/```
+
 ```make -C build/```
-```./build/read_print_hex```
+
+```./build/read_bmp_to_array```
