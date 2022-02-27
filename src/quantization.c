@@ -1,13 +1,19 @@
 #include <gsl/gsl_matrix.h>
 #include <math.h>
+
 #define rows 8
 #define cols 8
+
+void quantize(gsl_matrix_const_view mat, gsl_matrix_const_view quantization_table, int * result, int _rows, int _cols) {
+    gsl_matrix_div_elements(&mat.matrix, &quantization_table.matrix);
+    for ( size_t row = 0; row < _rows; ++row ) { 
+        for ( size_t col = 0; col < _cols; ++col ) { 
+            result[(row*_rows) + col] = (int)round(gsl_matrix_get( &mat.matrix, row, col ));
+        }
+    }
+}
+
 int main(int argc, char const* argv[]) {
-    // Make 8x8 test matrix
-    // Make 8x8 quantization table
-    // Elementwise divide
-    // Elementwise round down
-    // Print
 
     const double data[rows*cols] = { 
         313, 56, -27, 18, 78, -60, 27, -27,
@@ -29,14 +35,13 @@ int main(int argc, char const* argv[]) {
         49, 64, 78, 87, 103, 121, 120, 101,
         72, 92, 95, 98, 112, 100, 103, 99
     };  
+    int result[rows*cols]; 
     gsl_matrix_const_view mat = gsl_matrix_const_view_array( data, rows, cols );
     gsl_matrix_const_view quantization_table = gsl_matrix_const_view_array( quantization_data, rows, cols );
-    gsl_matrix_div_elements(&mat.matrix, &quantization_table.matrix);
-    for ( size_t row = 0; row < rows; ++row ) { 
-        for ( size_t col = 0; col < cols; ++col ) { 
-            printf( " %i", (int)round(gsl_matrix_get( &mat.matrix, row, col ) ));
-        }
-        printf( "\n" );
+    quantize(mat, quantization_table, result, rows, cols);
+        for (size_t i = 0; i < 64; i++)
+    {
+        printf(" %i", result[i]);
     }
     return 0;
 }
