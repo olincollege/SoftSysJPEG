@@ -3,4 +3,5 @@ project(JPEG)
 include_directories(../include)
 add_executable(read_print_hex read_print_hex.c)
 add_executable(read_bmp_to_array read_bmp_to_array.c)
-
+add_executable(quantization quantization.c)
+target_link_libraries(quantization gsl m)
