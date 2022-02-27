@@ -53,7 +53,7 @@ void rgb_to_ycrcb(int height, int width, int* red, int* green, int* blue){
             b = *((blue+i*j)+j);
             *((red+i*j)+j) = 16+(((r<<6)+(r<<1)+(g<<7)+g+(b<<4)+(b<<3)+b)>>8);
             *((green+i*j)+j) = 128 + ((-((r<<5)+(r<<2)+(r<<1))-((g<<6)+(g<<3)+(g<<1))+(b<<7)-(b<<1))>>8);
-            *((blue+i*j)+j) = 128 + (((r<<7)-(r<<4)-((g<<6)+(g<<5)-(G<<1))-((B<<4)+(B<<1)))>>8); 
+            *((blue+i*j)+j) = 128 + (((r<<7)-(r<<4)-((g<<6)+(g<<5)-(g<<1))-((b<<4)+(b<<1)))>>8); 
         }
     }
 }
@@ -66,6 +66,7 @@ int main(int argc, char const *argv[]) {
     int green[height][width];
     int blue[height][width];
     read_channels(data, height, width, padding, (int*)red, (int*)green, (int*)blue);
+    rgb_to_ycrcb(height, width, (int*)red, (int*)green, (int*)blue);
     int i, j;
     // Print out array for testing
     for (i = 0; i < height; i++) {
