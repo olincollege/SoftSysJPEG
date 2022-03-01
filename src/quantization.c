@@ -26,7 +26,7 @@ int main(int argc, char const* argv[]) {
         49, 64, 78, 87, 103, 121, 120, 101, 72, 92, 95, 98, 112, 100, 103, 99};
     quantize(data, quantization_data, rows*cols);
     for (size_t i = 0; i < 64; i++) {
-        printf(" %i", data[i]);
+        printf("%i,", data[i]);
     }
     return 0;
 }
