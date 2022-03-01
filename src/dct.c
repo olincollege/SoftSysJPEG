@@ -5,9 +5,6 @@
 #include <gsl/gsl_blas.h>
 
 #define MAT_SIZE 8
-#define PI 3.14159265
-#define SCALE sqrt(0.25)
-#define ROW_1 sqrt(0.125)
 
 int sample_slice[64] = {154, 123, 123, 123, 123, 123, 123, 136,
                             192, 180, 136, 154, 154, 154, 136, 110,
@@ -34,7 +31,9 @@ void slice_to_mat(int* arr, gsl_matrix *mat){
 }
 
 gsl_matrix* dct(int* slice, gsl_matrix *res){
-
+    const float scale = sqrt(0.25);
+    const float pi = 3.14159265;
+    const float row_1 = sqrt(0.125);
     // Allocate matrices
     gsl_matrix *t = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
     gsl_matrix *m = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
@@ -46,33 +45,40 @@ gsl_matrix* dct(int* slice, gsl_matrix *res){
     for (int i = 0; i < 8; i++){
         for (int j = 0; j < 8; j++){
             if (i == 0){
-                gsl_matrix_set(t, i, j, ROW_1);
+                gsl_matrix_set(t, i, j, row_1);
             } else{
-                gsl_matrix_set(t, i, j, cos(((2*j+1)*i*PI)/16)*SCALE);
+                gsl_matrix_set(t, i, j, cos(((2*j+1)*i*pi)/16)*scale);
             }
         }
     }
 
+    //test out that this matrix printed correctly
     //multiply into DCT math
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, t, m, 0.0, res);
-    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, res, t, 0.0, res);
-    // free matrices declared in here
+    gsl_matrix *inter = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, t, m, 0.0, inter);
+    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, inter, t, 0.0, res);
+    
+    // free matrices declared in this function
     gsl_matrix_free(t);
     gsl_matrix_free(m);
+    gsl_matrix_free(inter);
     return res;
 }
 
 int main(){
     gsl_matrix *res = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
     res = dct(sample_slice, res);
-
+    
     for (int i = 0; i < 8; i++){
-        for (int j = 0; i < 8; j++){
+        for (int j = 0; j < 8; j++){
             if (j != 7){
-                printf("%d ", gsl_matrix_get(res, i, j));
+                printf("%f ", gsl_matrix_get(res, i, j));
             } else{
-                printf("%d\n", gsl_matrix_get(res, i, j));
+                printf("%f\n", gsl_matrix_get(res, i, j));
             }
         }
     }
+    
+    // free the res matrix
+    gsl_matrix_free(res);
 }

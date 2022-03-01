@@ -40,6 +40,24 @@ void read_channels (unsigned char * data, int height, int width, int padding, in
     }
 }
 
+void rgb_to_ycrcb(int height, int width, int* red, int* green, int* blue){
+    int val;
+    int r,g,b;
+    // r -> y
+    // g -> cb
+    // b -> cr
+    for (int i = 0; i < height; i++){
+        for (int j = 0; j < width; j++){
+            r = *((red+i*j)+j);
+            g = *((green+i*j)+j);
+            b = *((blue+i*j)+j);
+            *((red+i*j)+j) = 16+(((r<<6)+(r<<1)+(g<<7)+g+(b<<4)+(b<<3)+b)>>8);
+            *((green+i*j)+j) = 128 + ((-((r<<5)+(r<<2)+(r<<1))-((g<<6)+(g<<3)+(g<<1))+(b<<7)-(b<<1))>>8);
+            *((blue+i*j)+j) = 128 + (((r<<7)-(r<<4)-((g<<6)+(g<<5)-(g<<1))-((b<<4)+(b<<1)))>>8); 
+        }
+    }
+}
+
 int main(int argc, char const *argv[]) {
     int width, height, padding, bitcount, size;
     unsigned char  *data = read_bmp_to_array("include/data/test.bmp", &width, &height,
@@ -48,6 +66,7 @@ int main(int argc, char const *argv[]) {
     int green[height][width];
     int blue[height][width];
     read_channels(data, height, width, padding, (int*)red, (int*)green, (int*)blue);
+    rgb_to_ycrcb(height, width, (int*)red, (int*)green, (int*)blue);
     int i, j;
     // Print out array for testing
     for (i = 0; i < height; i++) {
