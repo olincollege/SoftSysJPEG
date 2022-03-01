@@ -1,6 +1,5 @@
-#include <gsl/gsl_matrix.h>
-#include <math.h>
-
+#include <stdlib.h>
+#include <stdio.h>
 #define rows 8
 #define cols 8
 #define ROUND_DIV(a,b) ((a<0) ^ (b<0)) ? (a - b/2)/b: (a + b/2)/b
