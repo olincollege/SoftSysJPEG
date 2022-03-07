@@ -66,6 +66,7 @@ int main(int argc, char const *argv[]) {
     int green[height][width];
     int blue[height][width];
     read_channels(data, height, width, padding, (int*)red, (int*)green, (int*)blue);
+    rgb_to_ycrcb(height, width, (int*)red, (int*)green, (int*)blue);
     int i, j;
     // Print out array for testing
     for (i = 0; i < height; i++) {
