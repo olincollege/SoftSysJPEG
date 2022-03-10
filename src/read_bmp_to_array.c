@@ -58,6 +58,23 @@ void rgb_to_ycrcb(int height, int width, int* red, int* green, int* blue){
     }
 }
 
+void chroma_downsample(int* cb, int* cr, int height, int width){
+    int cb_avg;
+    int cr_avg;
+    // 4:2:2 downsampling
+    for (int row = 0; row < height; row++){
+        for (int col = 0; col < width-1; col+2) {
+            //average for each 2x1 sample block
+            cb_avg = (*((cb+row*width)+col)+ *((cb+row+1*width)+col))/2;
+            *((cb+row*width)+col) = cb_avg;
+            *((cb+row+1*width)+col) = cb_avg;
+            cr_avg = (*((cr+row*width)+col)+ *((cr+row+1*width)+col))/2;
+            *((cr+row*width)+col) = cr_avg;
+            *((cr+row+1*width)+col) = cr_avg;
+        }
+    }
+}
+
 int main(int argc, char const *argv[]) {
     int width, height, padding, bitcount, size;
     unsigned char  *data = read_bmp_to_array("include/data/test.bmp", &width, &height,
