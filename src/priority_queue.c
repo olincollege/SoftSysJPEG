@@ -1,31 +1,28 @@
 #include <stdlib.h>
 #include <stdio.h>
+#include "priority_queue.h"
 
-// Data type is just an int but we can make it to whatever the runline thing actually is
-typedef struct n {
-    int priority;
-    int data;
-    struct n* next;
-} Node;
 
-Node* make_node(int priority, int data, Node* next) {
+Node* make_node(int freq, int data, Node* next, Node* left, Node* right) {
     Node* ret = malloc(sizeof(Node));
-    ret->priority = priority;
+    ret->freq = freq;
     ret->data = data;
     ret->next = next;
+    ret->left = left;
+    ret->right = right;
     return ret;
 }
 
-int insert(Node** q, int priority, int data) {
-    if ((*q)->priority > priority) {
-        Node* tmp = make_node((*q)->priority, (*q)->data, (*q)->next);
-        *q = make_node(priority, data, tmp);
+int insert(Node** q, int freq, int data, Node* left, Node* right) {
+    if ((*q)->freq < freq) {
+        Node* tmp = make_node((*q)->freq, (*q)->data, (*q)->next, left, right);
+        *q = make_node(freq, data, tmp, left, right);
         return 0;
     } else if ((*q)->next == NULL) {
-        (*q)->next = make_node(priority, data, NULL);
+        (*q)->next = make_node(freq, data, NULL, left, right);
         return 0;
     } 
-    return insert(&((*q)->next), priority, data);
+    return insert(&((*q)->next), freq, data, left, right);
 }
 
 int pop(Node** q) {
@@ -36,12 +33,25 @@ int pop(Node** q) {
     return ret;
 }
 
-int main(int argc, char const* argv[]) {
-    Node * q = make_node(0,50, NULL);
-    insert(&q, 1, 1010);
+Node* node_pop(Node** q){
+    Node* ret = malloc(sizeof(Node));
+    Node* tmp = (*q);
+    ret->freq = tmp->freq;
+    ret->data = tmp->data;
+    ret->next = tmp->next;
+    ret->left = tmp->left;
+    ret->right = tmp->right;
+    (*q) = ret->next;
+    free(tmp);
+    return ret;
+}
+
+/**int main(int argc, char const* argv[]) {
+    Node * q = make_node(14,50, NULL);
+    insert(&q, 2, 1010);
     insert(&q, 3, 312);
-    insert(&q, 5, 123);
-    insert(&q, 2, 345345);
+    insert(&q, 6, 123);
+    insert(&q, 12, 345345);
 
     while(q->next != NULL) {
         printf("%i \n", pop(&q));
@@ -49,3 +59,4 @@ int main(int argc, char const* argv[]) {
     printf("%i \n", pop(&q));
     return 0;
 }
+*/
