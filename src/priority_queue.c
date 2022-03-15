@@ -14,7 +14,7 @@ Node* make_node(int freq, int data, Node* next, Node* left, Node* right) {
 }
 
 int insert(Node** q, int freq, int data, Node* left, Node* right) {
-    if ((*q)->freq < freq) {
+    if ((*q)->freq > freq) {
         Node* tmp = make_node((*q)->freq, (*q)->data, (*q)->next, left, right);
         *q = make_node(freq, data, tmp, left, right);
         return 0;
@@ -47,16 +47,14 @@ Node* node_pop(Node** q){
 }
 
 /**int main(int argc, char const* argv[]) {
-    Node * q = make_node(14,50, NULL);
-    insert(&q, 2, 1010);
-    insert(&q, 3, 312);
-    insert(&q, 6, 123);
-    insert(&q, 12, 345345);
-
-    while(q->next != NULL) {
-        printf("%i \n", pop(&q));
+    Node * q = make_node(14,50, NULL, NULL, NULL);
+    Node* tmp = malloc(sizeof(Node));
+    while(q->next != NULL){
+        printf("%i\n", pop(&q));
+        node_pop(&q);
+        printf("%i\n", tmp->data);
     }
-    printf("%i \n", pop(&q));
-    return 0;
-}
-*/
+    node_pop(&q, tmp);
+    printf("%i\n", tmp->data);
+    free(tmp);
+}*/

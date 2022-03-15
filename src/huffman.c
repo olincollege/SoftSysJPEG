@@ -39,6 +39,24 @@ void count_freq(int* data, int* frequencies){
     }    
 }
 
+void free_tree(Node* root){
+    Node* tmp = root;
+    if(root->left!=NULL) { free_tree(root->left); }
+    if(root->right!=NULL) { free_tree(root->right); }
+    free(root);
+}
+
+void make_table(int* code_table, Node* root, int code){
+    if (root==NULL) { return; }
+    if (root->data <= 255){
+        code_table[root->data] = code;
+        return;
+    }
+
+    make_table(code_table, root->left, code*10);
+    make_table(code_table, root->right, code*10+1);
+}
+
 int main(int argc, char const *argv[])
 {
     // dummy data to test everything
@@ -50,17 +68,13 @@ int main(int argc, char const *argv[])
     make_queue(frequencies, &q);
     Node* root = malloc(sizeof(Node));
     root = make_tree(q);
-    while(!is_leaf(root)){
-        if((root->right)!=NULL) {root = root->right;}
-        else {root = root->left;}
+    
+    int table[256]; int path;
+    memset(table, 0, sizeof(table));
+    make_table(table, root, path);
+    for (int i = 0; i<256; i++){
+        if (table[i]!=0) { printf("%i, %i\n", i, table[i]); }
     }
-    printf("%i %i\n", root->data, root->freq);
-    free(root); 
-    //while(q->next != NULL){
-        //printf("%i\n", pop(&q));
-      //  node_pop(&q, tmp);
-     //   printf("%i\n", tmp->data);
-    //}
-    //node_pop(&q, tmp);
-    //printf("%i\n", tmp->data);
+    //sanity check
+    printf("%d\n", root->left->left->data);
 }
