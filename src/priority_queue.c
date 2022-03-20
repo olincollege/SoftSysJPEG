@@ -46,7 +46,7 @@ Node* node_pop(Node** q){
     return ret;
 }
 
-/**int main(int argc, char const* argv[]) {
+int main(int argc, char const* argv[]) {
     Node * q = make_node(14,50, NULL, NULL, NULL);
     Node* tmp = malloc(sizeof(Node));
     while(q->next != NULL){
@@ -54,7 +54,7 @@ Node* node_pop(Node** q){
         node_pop(&q);
         printf("%i\n", tmp->data);
     }
-    node_pop(&q, tmp);
+    node_pop(&q);
     printf("%i\n", tmp->data);
     free(tmp);
-}*/
+}
