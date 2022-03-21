@@ -58,48 +58,56 @@ void write_start_of_frame(FILE * file, Image * image) {
     fputc(0, file); // assign cb to first quant table
 }
 
-int read_bmp(FILE * file, Image * image) {
-    unsigned char *data = 0;
-    unsigned char info[54] = {0};
-    if (!file) {
-        return 1;
-    }
-    fread(info, 1, 54, file);
-    image->width = *(int *)(info + 18);
-    image->height = *(int *)(info + 22);
-    int bitcount = *(int *)(info + 28);
-    int size = (((image->width) * (bitcount) + 31) / 32) * 4 * (image->height);
-    int padding = (image->width) % 4;
-    if (bitcount != 24) {  // this code works for 24-bit bitmap only
-        printf("Invalid bit depth\n");
-        if (file) fclose(file);
-        if (data) free(data);
-        return 1;
-    }
+int read_bmp(BMP * bmp, Image * image) {
+    image->width = get_width(bmp);
+    image->height = get_height(bmp);
 
-    data = malloc((size));
-    fread(data, 1, (size), file);
     image->blockHeight = (image->height + 7) / 8; // TODO figure out why theres a plus 7 here
     image->blockWidth = (image->width + 7) / 8;
     printf("size | w:%i h:%i\n", image->width, image->height);
     printf("blocks | w:%i h:%i \n", image->blockHeight, image->blockWidth);
     image->blocks = malloc(sizeof(Block) * (image->blockHeight * image->blockWidth));
+    unsigned char r, g, b;
+    int k =0;
+    for (size_t i = image->height-1; i < image->height; i--)
+    {
+        const int blockRow = k / 8;
+        const int pixelRow = k % 8;
+        for (size_t j = 0; j < image->width; j++)
+        {
+            get_pixel_rgb(bmp, j, i, &r, &g, &b);
 
-    for (int row = image->height - 1; row >= 0; row--) {
-        const int blockRow = row / 8;
-        const int pixelRow = row % 8;
-        for (int col = 0; col < image->width; col++) {
-            const int blockColumn = col / 8;
-            const int pixelColumn = col % 8;
+
+            const int blockColumn = j / 8;
+            const int pixelColumn = j % 8;
             const int blockIndex = blockRow * image->blockWidth + blockColumn;
             const int pixelIndex = pixelRow * 8 + pixelColumn;
 
-            int p = (row * image->width + col) * 3 + row * padding;
-            image->blocks[blockIndex].b[pixelIndex] = data[p + 0]; // BGR instead of rgb, idk why
-            image->blocks[blockIndex].g[pixelIndex] = data[p + 1]; 
-            image->blocks[blockIndex].r[pixelIndex] = data[p + 2];
+            image->blocks[blockIndex].r[pixelIndex] = r; // BGR instead of rgb, idk why
+            image->blocks[blockIndex].g[pixelIndex] = g; 
+            image->blocks[blockIndex].b[pixelIndex] = b;
         }
+        k++;
+        
     }
+    
+
+
+    // for (int row = image->height - 1; row >= 0; row--) {
+    //     const int blockRow = row / 8;
+    //     const int pixelRow = row % 8;
+    //     for (int col = 0; col < image->width; col++) {
+    //         const int blockColumn = col / 8;
+    //         const int pixelColumn = col % 8;
+    //         const int blockIndex = blockRow * image->blockWidth + blockColumn;
+    //         const int pixelIndex = pixelRow * 8 + pixelColumn;
+
+    //         int p = (row * image->width + col) * 3 + row * padding;
+    //         image->blocks[blockIndex].r[pixelIndex] = data[p + 0]; // BGR instead of rgb, idk why
+    //         image->blocks[blockIndex].g[pixelIndex] = data[p + 1]; 
+    //         image->blocks[blockIndex].b[pixelIndex] = data[p + 2];
+    //     }
+    // }
     return 0;
     
 }
@@ -129,9 +137,9 @@ void slice_to_mat(int* arr, gsl_matrix *mat){
 void mat_to_slice(int* arr, gsl_matrix *mat){
     // printf("\n");
     for (int i = 0; i < 64; i++){
-        // if (i%8 == 0) printf("\n");
+        if (i%8 == 0) printf("\n");
         arr[i] = round(gsl_matrix_get(mat, i%8, i/8));
-        // printf("%i\t", arr[i]);
+        printf("%i\t", arr[i]);
     }
 }
 
@@ -388,15 +396,18 @@ void encode_huffman(Image * image, unsigned char ** huffmanData) {
 
 }
 
-void print_blocks(Image * image) { //image->blockHeight*image->blockWidth
-    for (size_t i = 0; i < 1; i++)
+void print_blocks(Image * image) {
+    for (size_t i = 0; i < image->blockHeight*image->blockWidth; i++)
     {
-        printf("Block # %i\n", (int) i);
+        printf("\nBlock # %i\n", (int) i);
         for (size_t j = 0; j < 64; j++)
         {
+            if (j%8 == 0) printf("\n");
             // printf("rgb %i %i %i\n", image->blocks[i].r[j], image->blocks[i].g[j], image->blocks[i].b[j]);
-            printf("ycrcb %i %i %i\n", image->blocks[i].y[j], image->blocks[i].cr[j], image->blocks[i].cb[j]);
-        }        
+            // printf("%i %i %i", image->blocks[i].y[j], image->blocks[i].cr[j], image->blocks[i].cb[j]);
+            printf("%i ", image->blocks[i].y[j]);
+        }      
+        printf("\n");  
     }
 }
 
@@ -428,18 +439,18 @@ int main(int argc, char const *argv[])
     // printf("%i %i %i\n", y,cb,cr);
     // return 0;
     Image * image = malloc(sizeof(Image));
-    FILE *bmp;
-
-    bmp = fopen("include/data/big.bmp", "r+");
+    BMP* bmp = bopen("include/data/smalldsf.bmp");
+    // bmp = fopen("include/data/smalldsf.bmp", "r+");
     // // read in the bmp TODO figure out why only 24 bit images work
     if (read_bmp(bmp, image)) {
         printf("Error reading BMP\n");
         return EXIT_FAILURE;
     }
-    fclose(bmp);
-
+    bclose(bmp);
     // // Process image data to jpeg
+
     rgb_to_ycrcb(image);
+
     // // printf("YCRCB");
     // // print_blocks(image);
     dct(image);
