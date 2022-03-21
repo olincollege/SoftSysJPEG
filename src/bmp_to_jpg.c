@@ -71,6 +71,7 @@ int read_bmp(FILE * file, Image * image) {
     int size = (((image->width) * (bitcount) + 31) / 32) * 4 * (image->height);
     int padding = (image->width) % 4;
     if (bitcount != 24) {  // this code works for 24-bit bitmap only
+        printf("Invalid bit depth\n");
         if (file) fclose(file);
         if (data) free(data);
         return 1;
@@ -409,17 +410,13 @@ int main(int argc, char const *argv[])
     // Quantize
     // huffman
     
-    Image * image;
+    Image * image = malloc(sizeof(Image));
     FILE *bmp;
 
     bmp = fopen("include/data/test.bmp", "r+");
-    // read in the bmp TODO figure out why only 24 bit images work
-    if (bmp == NULL) {
-        printf("Error opening BMP");
-        return EXIT_FAILURE;   
-    }
+    // // read in the bmp TODO figure out why only 24 bit images work
     if (read_bmp(bmp, image)) {
-        printf("Error reading BMP");
+        printf("Error reading BMP\n");
         return EXIT_FAILURE;
     }
     fclose(bmp);
@@ -432,66 +429,65 @@ int main(int argc, char const *argv[])
     // // printf("DCT");
     // // print_blocks(image);
     quantize(image, yQuantTable, CrCbQuantTable);
-    // // printf("Quantize");
-    // // print_blocks(image);
+    // printf("Quantize");
+    // print_blocks(image);
 
     // restart_interval(image, RESTART_INTERVAL);
-    // // Write image data to file
-    char * x = NULL;
-    // cvector_vector_type(unsigned char) huffman_data_vec;
-    // encode_huffman(image, &huffman_data_vec);
+    // Write image data to file
+    cvector_vector_type(unsigned char) huffman_data_vec = NULL;
+    encode_huffman(image, &huffman_data_vec);
     FILE *file;
 
     file = fopen("include/test.jpg", "w+");
 
-    // // Start of Image
-    // fputc(0xFF, file);
-    // fputc(SOI, file);
+    // Start of Image
+    fputc(0xFF, file);
+    fputc(SOI, file);
 
-    // // Default application header
-    // write_app_header(file);
+    // Default application header
+    write_app_header(file);
 
-    // // Quantization Tables
-    // write_quantization_table(file, yQuantTable, 0);
-    // write_quantization_table(file, CrCbQuantTable, 1);
+    // Quantization Tables
+    write_quantization_table(file, yQuantTable, 0);
+    write_quantization_table(file, CrCbQuantTable, 1);
 
-    // // Restart Interval
+    // Restart Interval
     // fputc(0xFF, file);
     // fputc(DRI, file);
     // write_short(RESTART_INTERVAL, file);
 
-    // // Start of Frame
-    // write_start_of_frame(file, image);
+    // Start of Frame
+    write_start_of_frame(file, image);
     
-    // // Huffman tables
-    // write_huffman_table(file, 0, 0, &hDCTableY);
-    // write_huffman_table(file, 0, 1, &hDCTableCbCr);
-    // write_huffman_table(file, 1, 0, &hACTableY);
-    // write_huffman_table(file, 1, 1, &hACTableCbCr);
+    // Huffman tables
+    write_huffman_table(file, 0, 0, &hDCTableY);
+    write_huffman_table(file, 0, 1, &hDCTableCbCr);
+    write_huffman_table(file, 1, 0, &hACTableY);
+    write_huffman_table(file, 1, 1, &hACTableCbCr);
 
-    // // Table info 1 means AC 0 means DC, table ID 0-3
-    // // Number of codes for each length 16 bytes?
+    // Table info 1 means AC 0 means DC, table ID 0-3
+    // Number of codes for each length 16 bytes?
 
-    // // XX first nibble is number of zeros and second nibble is length of coeff
-    // // If more than 15 zeros then use code F0
-    // // Use 0 0 for end of block
+    // XX first nibble is number of zeros and second nibble is length of coeff
+    // If more than 15 zeros then use code F0
+    // Use 0 0 for end of block
 
-    // // Start of Scan
-    // write_start_of_scan(file);
+    // Start of Scan
+    write_start_of_scan(file);
 
 
-    // // Huffman data
-    // // fwrite(huffman_data, sizeof(huffman_data) * sizeof(unsigned char), sizeof(huffman_data), file);
-    // unsigned char *it;
-    // int i = 0;
-    // for (it = cvector_begin(huffman_data_vec); it != cvector_end(huffman_data_vec); ++it) {
-    //     printf("v[%d] = %c\n", i, *it);
-    //     fputc(*it, file);
-    //     ++i;
-    // }
-    // // End of Image
-    // fputc(0xFF, file);
-    // fputc(EOI, file);
+    // Huffman data
+    // fwrite(huffman_data, sizeof(huffman_data) * sizeof(unsigned char), sizeof(huffman_data), file);
+    unsigned char *it;
+    int i = 0;
+    for (it = cvector_begin(huffman_data_vec); it != cvector_end(huffman_data_vec); ++it) {
+        // printf("v[%d] = %c\n", i, *it);
+        fputc(*it, file);
+        ++i;
+    }
+    // End of Image
+    fputc(0xFF, file);
+    fputc(EOI, file);
 
     fclose(file);
     return 0;
