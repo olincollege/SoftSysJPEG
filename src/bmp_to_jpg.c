@@ -124,8 +124,11 @@ void slice_to_mat(int* arr, gsl_matrix *mat){
 }
 
 void mat_to_slice(int* arr, gsl_matrix *mat){
+    // printf("\n");
     for (int i = 0; i < 64; i++){
+        // if (i%8 == 0) printf("\n");
         arr[i] = gsl_matrix_get(mat, i%8, i/8);
+        // printf("%i\t", arr[i]);
     }
 }
 
@@ -171,23 +174,27 @@ void dct(Image * image) {
     for (size_t i = 0; i < image->blockHeight * image->blockWidth; i++) {
         dct_slice(image->blocks[i].y);
         dct_slice(image->blocks[i].cr);
-        dct_slice(image->blocks[i].cb);
-        // for (size_t j = 0; j < 64; j++)
-        // {
-        //     image->blocks[i].y[j] = dctY[j];
-        //     image->blocks[i].cr[j] = dctCr[j];
-        //     image->blocks[i].cb[j] = dctCb[j];
-        // }
-        
+        dct_slice(image->blocks[i].cb);        
     }
 }
 
 void quantize(Image *image, QuantizationTable yQuantTbl, QuantizationTable crcbQuantTbl) {
     for (size_t i = 0; i < image->blockHeight * image->blockWidth; i++) {
+                    printf("\n");
+        for (int j = 0; j < 64; j++){
+        if (j%8 == 0) printf("\n");
+        printf("%i\t", image->blocks[i].y[j]);
+        }
+        printf("\n");
         for (size_t j = 0; j < 64; j++) {
             image->blocks[i].y[j] = ROUND_DIV(image->blocks[i].y[j], (signed)yQuantTbl[j]);
             image->blocks[i].cr[j] = ROUND_DIV(image->blocks[i].cr[j], (signed)crcbQuantTbl[j]);
             image->blocks[i].cb[j] = ROUND_DIV(image->blocks[i].cb[j], (signed)crcbQuantTbl[j]);
+        }
+
+        for (int j = 0; j < 64; j++){
+        if (j%8 == 0) printf("\n");
+        printf("%i\t", image->blocks[i].y[j]);
         }
     }
 }
@@ -413,7 +420,7 @@ int main(int argc, char const *argv[])
     Image * image = malloc(sizeof(Image));
     FILE *bmp;
 
-    bmp = fopen("include/data/test.bmp", "r+");
+    bmp = fopen("include/data/smalldsf.bmp", "r+");
     // // read in the bmp TODO figure out why only 24 bit images work
     if (read_bmp(bmp, image)) {
         printf("Error reading BMP\n");
@@ -460,10 +467,10 @@ int main(int argc, char const *argv[])
     write_start_of_frame(file, image);
     
     // Huffman tables
-    write_huffman_table(file, 0, 0, &hDCTableY);
-    write_huffman_table(file, 0, 1, &hDCTableCbCr);
-    write_huffman_table(file, 1, 0, &hACTableY);
-    write_huffman_table(file, 1, 1, &hACTableCbCr);
+    write_huffman_table(file, 0, 0, dcTables[0]);//&hDCTableY);
+    write_huffman_table(file, 0, 1, dcTables[1]);//&hDCTableCbCr);
+    write_huffman_table(file, 1, 0, acTables[0]);//&hACTableY);
+    write_huffman_table(file, 1, 1, acTables[1]);//&hACTableCbCr);
 
     // Table info 1 means AC 0 means DC, table ID 0-3
     // Number of codes for each length 16 bytes?
