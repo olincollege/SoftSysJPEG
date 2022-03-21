@@ -51,11 +51,11 @@ void write_start_of_frame(FILE * file, Image * image) {
     // cr
     fputc(2, file);
     fputc(0x11, file); // sampling factor of 1
-    fputc(0, file); // assign cr to first quant table
+    fputc(1, file); // assign cr to first quant table
     // cb
     fputc(3, file);
     fputc(0x11, file); // sampling factor of 1
-    fputc(0, file); // assign cb to first quant table
+    fputc(1, file); // assign cb to first quant table
 }
 
 int read_bmp(BMP * bmp, Image * image) {
@@ -137,9 +137,9 @@ void slice_to_mat(int* arr, gsl_matrix *mat){
 void mat_to_slice(int* arr, gsl_matrix *mat){
     // printf("\n");
     for (int i = 0; i < 64; i++){
-        if (i%8 == 0) printf("\n");
+        // if (i%8 == 0) printf("\n");
         arr[i] = round(gsl_matrix_get(mat, i%8, i/8));
-        printf("%i\t", arr[i]);
+        // printf("%i\t", arr[i]);
     }
 }
 
@@ -360,7 +360,7 @@ void encode_huffman(Image * image, unsigned char ** huffmanData) {
 
     int previousDCs[3] = { 0 };
 
-    for (uint i = 0; i < 3; ++i) {
+    for (uint i = 0; i < 2; ++i) {
         // if (!dcTables[i]->set) {
             generateCodes(dcTables[i]);
         // }
@@ -399,13 +399,13 @@ void encode_huffman(Image * image, unsigned char ** huffmanData) {
 void print_blocks(Image * image) {
     for (size_t i = 0; i < image->blockHeight*image->blockWidth; i++)
     {
-        printf("\nBlock # %i\n", (int) i);
+        // printf("\nBlock # %i\n", (int) i);
         for (size_t j = 0; j < 64; j++)
         {
-            if (j%8 == 0) printf("\n");
+            // if (j%8 == 0) printf("\n");
             // printf("rgb %i %i %i\n", image->blocks[i].r[j], image->blocks[i].g[j], image->blocks[i].b[j]);
             // printf("%i %i %i", image->blocks[i].y[j], image->blocks[i].cr[j], image->blocks[i].cb[j]);
-            printf("%i ", image->blocks[i].y[j]);
+            printf("%i,", image->blocks[i].cb[j]);
         }      
         printf("\n");  
     }
@@ -458,8 +458,8 @@ int main(int argc, char const *argv[])
     // // print_blocks(image);
     quantize(image, yQuantTable, CrCbQuantTable);
     // printf("Quantize");
-    // print_blocks(image);
-
+    print_blocks(image);
+    // return 0;
     // restart_interval(image, RESTART_INTERVAL);
     // Write image data to file
     cvector_vector_type(unsigned char) huffman_data_vec = NULL;
