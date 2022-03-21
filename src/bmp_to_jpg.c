@@ -95,9 +95,9 @@ int read_bmp(FILE * file, Image * image) {
             const int pixelIndex = pixelRow * 8 + pixelColumn;
 
             int p = (row * image->width + col) * 3 + row * padding;
-            image->blocks[blockIndex].r[pixelIndex] = data[p + 0];
-            image->blocks[blockIndex].g[pixelIndex] = data[p + 1];
-            image->blocks[blockIndex].b[pixelIndex] = data[p + 2];
+            image->blocks[blockIndex].b[pixelIndex] = data[p + 0]; // BGR instead of rgb, idk why
+            image->blocks[blockIndex].g[pixelIndex] = data[p + 1]; 
+            image->blocks[blockIndex].r[pixelIndex] = data[p + 2];
         }
     }
     return 0;
@@ -111,9 +111,12 @@ void rgb_to_ycrcb(Image * image){
             r = image->blocks[i].r[j];
             g = image->blocks[i].g[j];
             b = image->blocks[i].b[j];
-            image->blocks[i].y[j] = 16 + (((r<<6)+(r<<1)+(g<<7)+g+(b<<4)+(b<<3)+b)>>8); // TODO comments explaining this
-            image->blocks[i].cb[j] = 128 + ((-((r<<5)+(r<<2)+(r<<1))-((g<<6)+(g<<3)+(g<<1))+(b<<7)-(b<<1))>>8);
-            image->blocks[i].cr[j] = 128 + (((r<<7)-(r<<4)-((g<<6)+(g<<5)-(g<<1))-((b<<4)+(b<<1)))>>8); 
+            image->blocks[i].y[j] = round(16.0 + (65.738/256.0)*(float)r + (129.057/256.0)*(float)g + (25.064/256.0)*(float)b);
+            image->blocks[i].cb[j] = round(128.0 + (-37.945/256.0)*(float)r + (-74.494/256.0)*(float)g + (112.439/256.0)*(float)b);
+            image->blocks[i].cr[j] = round(128.0 + (112.439/256.0)*(float)r + (-94.154/256.0)*(float)g + (-18.285/256.0)*(float)b);
+            // image->blocks[i].y[j] = 16 + (((r<<6)+(r<<1)+(g<<7)+g+(b<<4)+(b<<3)+b)>>8); // TODO comments explaining this
+            // image->blocks[i].cb[j] = 128 + ((-((r<<5)+(r<<2)+(r<<1))-((g<<6)+(g<<3)+(g<<1))+(b<<7)-(b<<1))>>8);
+            // image->blocks[i].cr[j] = 128 + (((r<<7)-(r<<4)-((g<<6)+(g<<5)-(g<<1))-((b<<4)+(b<<1)))>>8); 
         }
     }
 }
@@ -127,7 +130,7 @@ void mat_to_slice(int* arr, gsl_matrix *mat){
     // printf("\n");
     for (int i = 0; i < 64; i++){
         // if (i%8 == 0) printf("\n");
-        arr[i] = gsl_matrix_get(mat, i%8, i/8);
+        arr[i] = round(gsl_matrix_get(mat, i%8, i/8));
         // printf("%i\t", arr[i]);
     }
 }
@@ -159,7 +162,7 @@ void dct_slice(int* slice){
     //multiply into DCT math
     gsl_matrix *inter = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, t, m, 0.0, inter);
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, inter, t, 0.0, res);
+    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, inter, t, 0.0, res);
     
     // free matrices declared in this function
     gsl_matrix_free(t);
@@ -180,21 +183,10 @@ void dct(Image * image) {
 
 void quantize(Image *image, QuantizationTable yQuantTbl, QuantizationTable crcbQuantTbl) {
     for (size_t i = 0; i < image->blockHeight * image->blockWidth; i++) {
-                    printf("\n");
-        for (int j = 0; j < 64; j++){
-        if (j%8 == 0) printf("\n");
-        printf("%i\t", image->blocks[i].y[j]);
-        }
-        printf("\n");
         for (size_t j = 0; j < 64; j++) {
             image->blocks[i].y[j] = ROUND_DIV(image->blocks[i].y[j], (signed)yQuantTbl[j]);
             image->blocks[i].cr[j] = ROUND_DIV(image->blocks[i].cr[j], (signed)crcbQuantTbl[j]);
             image->blocks[i].cb[j] = ROUND_DIV(image->blocks[i].cb[j], (signed)crcbQuantTbl[j]);
-        }
-
-        for (int j = 0; j < 64; j++){
-        if (j%8 == 0) printf("\n");
-        printf("%i\t", image->blocks[i].y[j]);
         }
     }
 }
@@ -416,11 +408,29 @@ int main(int argc, char const *argv[])
     // DCT
     // Quantize
     // huffman
-    
+    // int tmp[64] = {140,144,147,140,140,155,179,175,144,152,140,147,140,148,167,179,152,155,136,167,163,162,152,172,168,145,156,160,152,155,136,160,162,148,156,148,140,136,147,162,147,167,140,155,155,140,136,162,136,156,123,167,162,144,140,147,148,155,136,155,152,147,147,136};
+    // dct_slice(tmp);
+    // for (int j = 0; j < 64; j++){
+    //     if (j%8 == 0) printf("\n");
+    //     printf("%i\t", tmp[j]);
+    //     }
+    //     return 0;
+    // int r = 150;
+    // int g = 123;
+    // int b = 153;
+    // int y = round(16.0 + (65.738/256.0)*(float)r + (129.057/256.0)*(float)g + (25.064/256.0)*(float)b);
+    // int cb = round(128.0 + (-37.945/256.0)*(float)r + (-74.494/256.0)*(float)g + (112.439/256.0)*(float)b);
+    // int cr = round(128.0 + (112.439/256.0)*(float)r + (-94.154/256.0)*(float)g + (-18.285/256.0)*(float)b);
+    // // int y = 16 + (((r<<6)+(r<<1)+(g<<7)+g+(b<<4)+(b<<3)+b)>>8); // TODO comments explaining this
+    // // int cb = 128 + ((-((r<<5)+(r<<2)+(r<<1))-((g<<6)+(g<<3)+(g<<1))+(b<<7)-(b<<1))>>8);
+    // // int cr = 128 + (((r<<7)-(r<<4)-((g<<6)+(g<<5)-(g<<1))-((b<<4)+(b<<1)))>>8); 
+    // printf("%i %i %i\n", r,g,b);
+    // printf("%i %i %i\n", y,cb,cr);
+    // return 0;
     Image * image = malloc(sizeof(Image));
     FILE *bmp;
 
-    bmp = fopen("include/data/smalldsf.bmp", "r+");
+    bmp = fopen("include/data/big.bmp", "r+");
     // // read in the bmp TODO figure out why only 24 bit images work
     if (read_bmp(bmp, image)) {
         printf("Error reading BMP\n");
@@ -472,6 +482,22 @@ int main(int argc, char const *argv[])
     write_huffman_table(file, 1, 0, acTables[0]);//&hACTableY);
     write_huffman_table(file, 1, 1, acTables[1]);//&hACTableCbCr);
 
+    printf("----------------Offsets----------------\n");
+    for (size_t i = 0; i < 17; i++)
+    {
+        printf("%i, ", dcTables[0]->offsets[i]);
+    }
+    printf("\n----------------Symbols----------------\n");
+    for (size_t i = 0; i < 176; i++)
+    {
+        printf("%i, ", dcTables[0]->symbols[i]);
+    }
+    printf("\n----------------Codes----------------\n");
+    for (size_t i = 0; i < 176; i++)
+    {
+        printf("%i, ", dcTables[0]->codes[i]);
+    }
+    
     // Table info 1 means AC 0 means DC, table ID 0-3
     // Number of codes for each length 16 bytes?
 
