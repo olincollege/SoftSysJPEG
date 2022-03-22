@@ -51,55 +51,63 @@ void write_start_of_frame(FILE * file, Image * image) {
     // cr
     fputc(2, file);
     fputc(0x11, file); // sampling factor of 1
-    fputc(0, file); // assign cr to first quant table
+    fputc(1, file); // assign cr to first quant table
     // cb
     fputc(3, file);
     fputc(0x11, file); // sampling factor of 1
-    fputc(0, file); // assign cb to first quant table
+    fputc(1, file); // assign cb to first quant table
 }
 
-int read_bmp(FILE * file, Image * image) {
-    unsigned char *data = 0;
-    unsigned char info[54] = {0};
-    if (!file) {
-        return 1;
-    }
-    fread(info, 1, 54, file);
-    image->width = *(int *)(info + 18);
-    image->height = *(int *)(info + 22);
-    int bitcount = *(int *)(info + 28);
-    int size = (((image->width) * (bitcount) + 31) / 32) * 4 * (image->height);
-    int padding = (image->width) % 4;
-    if (bitcount != 24) {  // this code works for 24-bit bitmap only
-        printf("Invalid bit depth\n");
-        if (file) fclose(file);
-        if (data) free(data);
-        return 1;
-    }
+int read_bmp(BMP * bmp, Image * image) {
+    image->width = get_width(bmp);
+    image->height = get_height(bmp);
 
-    data = malloc((size));
-    fread(data, 1, (size), file);
     image->blockHeight = (image->height + 7) / 8; // TODO figure out why theres a plus 7 here
     image->blockWidth = (image->width + 7) / 8;
     printf("size | w:%i h:%i\n", image->width, image->height);
     printf("blocks | w:%i h:%i \n", image->blockHeight, image->blockWidth);
     image->blocks = malloc(sizeof(Block) * (image->blockHeight * image->blockWidth));
+    unsigned char r, g, b;
+    int k =0;
+    for (size_t i = image->height-1; i < image->height; i--)
+    {
+        const int blockRow = k / 8;
+        const int pixelRow = k % 8;
+        for (size_t j = 0; j < image->width; j++)
+        {
+            get_pixel_rgb(bmp, j, i, &r, &g, &b);
 
-    for (int row = image->height - 1; row >= 0; row--) {
-        const int blockRow = row / 8;
-        const int pixelRow = row % 8;
-        for (int col = 0; col < image->width; col++) {
-            const int blockColumn = col / 8;
-            const int pixelColumn = col % 8;
+
+            const int blockColumn = j / 8;
+            const int pixelColumn = j % 8;
             const int blockIndex = blockRow * image->blockWidth + blockColumn;
             const int pixelIndex = pixelRow * 8 + pixelColumn;
 
-            int p = (row * image->width + col) * 3 + row * padding;
-            image->blocks[blockIndex].b[pixelIndex] = data[p + 0]; // BGR instead of rgb, idk why
-            image->blocks[blockIndex].g[pixelIndex] = data[p + 1]; 
-            image->blocks[blockIndex].r[pixelIndex] = data[p + 2];
+            image->blocks[blockIndex].r[pixelIndex] = r; // BGR instead of rgb, idk why
+            image->blocks[blockIndex].g[pixelIndex] = g; 
+            image->blocks[blockIndex].b[pixelIndex] = b;
         }
+        k++;
+        
     }
+    
+
+
+    // for (int row = image->height - 1; row >= 0; row--) {
+    //     const int blockRow = row / 8;
+    //     const int pixelRow = row % 8;
+    //     for (int col = 0; col < image->width; col++) {
+    //         const int blockColumn = col / 8;
+    //         const int pixelColumn = col % 8;
+    //         const int blockIndex = blockRow * image->blockWidth + blockColumn;
+    //         const int pixelIndex = pixelRow * 8 + pixelColumn;
+
+    //         int p = (row * image->width + col) * 3 + row * padding;
+    //         image->blocks[blockIndex].r[pixelIndex] = data[p + 0]; // BGR instead of rgb, idk why
+    //         image->blocks[blockIndex].g[pixelIndex] = data[p + 1]; 
+    //         image->blocks[blockIndex].b[pixelIndex] = data[p + 2];
+    //     }
+    // }
     return 0;
     
 }
@@ -234,7 +242,7 @@ void write_start_of_scan(FILE * file) {
 }
 
 void generateCodes(HuffmanTable *hTable) {
-    uint code = 0;
+    uint16_t code = 0;
     for (uint i = 0; i < 16; ++i) {
         for (uint j = hTable->offsets[i]; j < hTable->offsets[i + 1]; ++j) {
             hTable->codes[j] = code;
@@ -276,8 +284,10 @@ void writeBit(uint bit, unsigned char** data) {
 
 void writeBits(uint bits, uint length, unsigned char** data) {
     for (uint i = 1; i <= length; ++i) {
+        // printf("%s", (bits >> (length - i) & 1) ? "1":"0");
         writeBit(bits >> (length - i), data);
     }
+    //printf("\n");
 }
 
 uint bitLength(int v) {
@@ -297,6 +307,7 @@ void encodeBlockComponent(
     HuffmanTable* acTable
 ) {
     // encode DC value
+    // printf("\n");
     int coeff = component[0] - *previousDC;
     *previousDC = component[0];
 
@@ -309,6 +320,8 @@ void encodeBlockComponent(
     uint code = 0;
     uint codeLength = 0;
     getCode(dcTable, coeffLength, &code, &codeLength);
+    // printf("\n\n%i %i DC\n", code, coeff);
+    // printf("%i %i\n", codeLength, codeLength);
     writeBits(code, codeLength, data);
     writeBits(coeff, coeffLength, data);
 
@@ -323,11 +336,16 @@ void encodeBlockComponent(
 
         if (i == 64) {
             getCode(acTable, 0x00, &code, &codeLength);
+        // printf("\n\n%i %i end\n", code, coeff);
+        // printf("%i %i\n", codeLength, coeffLength);
             writeBits(code, codeLength, data);
+            return;
         }
 
         while (numZeroes >= 16) {
             getCode(acTable, 0xF0, &code, &codeLength);
+        // printf("\n\n%i %i 0chunk\n", code, coeff);
+        // printf("%i %i\n", codeLength, coeffLength);
             writeBits(code, codeLength, data);
             numZeroes -= 16;
         }
@@ -341,8 +359,10 @@ void encodeBlockComponent(
         }
 
         // find symbol in table
-        byte symbol = numZeroes << 4 | coeffLength;
+        byte symbol = (numZeroes << 4) | coeffLength;
         getCode(acTable, symbol, &code, &codeLength);
+        // printf("\n\n%i %i\n", code, coeff);
+        // printf("%i %i\n", codeLength, coeffLength);
         writeBits(code, codeLength, data);
         writeBits(coeff, coeffLength, data);
     }
@@ -367,19 +387,19 @@ void encode_huffman(Image * image, unsigned char ** huffmanData) {
             encodeBlockComponent(
                         huffmanData,
                         image->blocks[y * image->blockWidth + x].y,
-                        &previousDCs[0],
+                        &(previousDCs[0]),
                         dcTables[0],
                         acTables[0]);
             encodeBlockComponent(
                         huffmanData,
-                        image->blocks[y * image->blockWidth + x].cr,
-                        &previousDCs[1],
+                        image->blocks[y * image->blockWidth + x].cb,
+                        &(previousDCs[1]),
                         dcTables[1],
                         acTables[1]);
             encodeBlockComponent(
                         huffmanData,
-                        image->blocks[y * image->blockWidth + x].cb,
-                        &previousDCs[2],
+                        image->blocks[y * image->blockWidth + x].cr,
+                        &(previousDCs[2]),
                         dcTables[2],
                         acTables[2]);
             
@@ -388,15 +408,18 @@ void encode_huffman(Image * image, unsigned char ** huffmanData) {
 
 }
 
-void print_blocks(Image * image) { //image->blockHeight*image->blockWidth
-    for (size_t i = 0; i < 1; i++)
+void print_blocks(Image * image) {
+    for (size_t i = 0; i < image->blockHeight*image->blockWidth; i++)
     {
-        printf("Block # %i\n", (int) i);
+        // printf("\nBlock # %i\n", (int) i);
         for (size_t j = 0; j < 64; j++)
         {
+            // if (j%8 == 0) printf("\n");
             // printf("rgb %i %i %i\n", image->blocks[i].r[j], image->blocks[i].g[j], image->blocks[i].b[j]);
-            printf("ycrcb %i %i %i\n", image->blocks[i].y[j], image->blocks[i].cr[j], image->blocks[i].cb[j]);
-        }        
+            // printf("%i %i %i", image->blocks[i].y[j], image->blocks[i].cr[j], image->blocks[i].cb[j]);
+            printf("%i,", image->blocks[i].cb[j]);
+        }      
+        printf("\n");  
     }
 }
 
@@ -428,18 +451,18 @@ int main(int argc, char const *argv[])
     // printf("%i %i %i\n", y,cb,cr);
     // return 0;
     Image * image = malloc(sizeof(Image));
-    FILE *bmp;
-
-    bmp = fopen("include/data/big.bmp", "r+");
+    BMP* bmp = bopen("include/data/big.bmp");
+    // bmp = fopen("include/data/smalldsf.bmp", "r+");
     // // read in the bmp TODO figure out why only 24 bit images work
     if (read_bmp(bmp, image)) {
         printf("Error reading BMP\n");
         return EXIT_FAILURE;
     }
-    fclose(bmp);
-
+    bclose(bmp);
     // // Process image data to jpeg
+
     rgb_to_ycrcb(image);
+
     // // printf("YCRCB");
     // // print_blocks(image);
     dct(image);
@@ -447,8 +470,8 @@ int main(int argc, char const *argv[])
     // // print_blocks(image);
     quantize(image, yQuantTable, CrCbQuantTable);
     // printf("Quantize");
-    // print_blocks(image);
-
+    print_blocks(image);
+    // return 0;
     // restart_interval(image, RESTART_INTERVAL);
     // Write image data to file
     cvector_vector_type(unsigned char) huffman_data_vec = NULL;
