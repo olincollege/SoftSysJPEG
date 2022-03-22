@@ -63,5 +63,6 @@ void dct_slice(int* slice){
 
     // Save to to inputted slice
     mat_to_slice(slice, res);
+    gsl_matrix_free(res);
 }
 

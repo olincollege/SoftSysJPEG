@@ -77,6 +77,6 @@ int main(int argc, char const *argv[])
         printf("\n");
     }
     run_line_encode(data,rows, cols);
-    // TODO figure out how to store the run line data    
+      
     return 0;
 }

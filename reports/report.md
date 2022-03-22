@@ -60,6 +60,23 @@ JPEGs then encode this transformed data using Huffman codes, which is a form of 
 
 In this case, the encoding for D would be '11', which is only two bits. JPEGs use this to create Huffman tables. We implemented huffman encoding but were unable to create functionality to write to a JPEG, so we adapted an existing implementation for C.
 
+**Memory Management**
+
+Output from valgrind:
+```
+Write Image Data
+==121786== 
+==121786== HEAP SUMMARY:
+==121786==     in use at exit: 0 bytes in 0 blocks
+==121786==   total heap usage: 6,540,665 allocs, 6,540,665 frees, 3,905,666,269 bytes allocated
+==121786== 
+==121786== All heap blocks were freed -- no leaks are possible
+==121786== 
+==121786== Use --track-origins=yes to see where uninitialised values come from
+==121786== For lists of detected and suppressed errors, rerun with: -s
+==121786== ERROR SUMMARY: 10000000 errors from 3 contexts (suppressed: 0 from 0)
+```
+
 ## Retrospective
 
 Our final product exceeded our MVP but did not reach our full goal. We wanted to implement every part of the JPEG compression from top to bottom, and while we were able to implement huffman encoding on its own, we were not able to fully integrate it with our JPEG writing code in time. Therefore, we adapted an implementation of huffman coding we found online to encode data. However, we still coded the DCT, unpacked the bitmap, understood huffman coding, and JPEG file structure well enough that we were able to refactor existing code to work for us. We feel like given the effort we put in and what we were able to do, we reached our learning goals for this project.

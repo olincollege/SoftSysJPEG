@@ -1,4 +1,6 @@
 #include "JPEG.h"
+#include "encoding_tables.h"
+
 
 void write_short(unsigned int val, FILE * file) {
     // write a 16 bit number in big endian 
@@ -204,8 +206,6 @@ void encodeBlockComponent(
 
         while (numZeroes >= 16) {
             getCode(acTable, 0xF0, &code, &codeLength);
-        // printf("\n\n%i %i 0chunk\n", code, coeff);
-        // printf("%i %i\n", codeLength, coeffLength);
             writeBits(code, codeLength, data);
             numZeroes -= 16;
         }
@@ -221,8 +221,6 @@ void encodeBlockComponent(
         // find symbol in table
         byte symbol = (numZeroes << 4) | coeffLength;
         getCode(acTable, symbol, &code, &codeLength);
-        // printf("\n\n%i %i\n", code, coeff);
-        // printf("%i %i\n", codeLength, coeffLength);
         writeBits(code, codeLength, data);
         writeBits(coeff, coeffLength, data);
     }
@@ -233,12 +231,8 @@ void encode_huffman(Image * image, unsigned char ** huffmanData) {
     int previousDCs[3] = { 0 };
 
     for (uint i = 0; i < 3; ++i) {
-        // if (!dcTables[i]->set) {
-            generateCodes(dcTables[i]);
-        // }
-        // if (!acTables[i]->set) {
-            generateCodes(acTables[i]);
-        // }
+        generateCodes(dcTables[i]);
+        generateCodes(acTables[i]);
     }
 
     for (uint y = 0; y < image->blockHeight; ++y) {
@@ -279,11 +273,17 @@ void print_blocks(Image * image) {
     }
 }
 
-int main(int argc, char const *argv[])
+void free_image(Image * image) {
+    free(image->blocks);
+    free(image);
+}
+
+
+int main(int argc, char *argv[])
 {
+    printf("Read BMP\n");
     Image * image = malloc(sizeof(Image));
-    BMP* bmp = bopen("include/data/beeeeeeg.bmp");
-    // read in the bmp TODO figure out why only 24 bit images work
+    BMP* bmp = bopen(argv[1]);
     if (read_bmp(bmp, image)) {
         printf("Error reading BMP\n");
         return EXIT_FAILURE;
@@ -291,18 +291,24 @@ int main(int argc, char const *argv[])
     bclose(bmp);
     // Process image data to jpeg
 
+    printf("\nConvert RGB to YCrCb\n");
     rgb_to_ycrcb(image);
 
+    printf("\nApply DCT\n");
     dct(image);
+
+    printf("\nQuantize\n");
     quantize(image, yQuantTable, CrCbQuantTable);
-    print_blocks(image);
+
     // Write image data to file
+    printf("\nCreate Huffman tables\n");
     cvector_vector_type(unsigned char) huffman_data_vec = NULL;
     encode_huffman(image, &huffman_data_vec);
     FILE *file;
 
     file = fopen("include/test.jpg", "w+");
 
+    printf("\nWrite Header Information\n");
     // Start of Image
     fputc(0xFF, file);
     fputc(SOI, file);
@@ -314,17 +320,17 @@ int main(int argc, char const *argv[])
     write_quantization_table(file, yQuantTable, 0);
     write_quantization_table(file, CrCbQuantTable, 1);
 
-    // Restart Interval
+
     // Start of Frame
     write_start_of_frame(file, image);
     
     // Huffman tables
-    write_huffman_table(file, 0, 0, dcTables[0]);//&hDCTableY);
-    write_huffman_table(file, 0, 1, dcTables[1]);//&hDCTableCbCr);
-    write_huffman_table(file, 1, 0, acTables[0]);//&hACTableY);
-    write_huffman_table(file, 1, 1, acTables[1]);//&hACTableCbCr);
+    write_huffman_table(file, 0, 0, dcTables[0]);
+    write_huffman_table(file, 0, 1, dcTables[1]);
+    write_huffman_table(file, 1, 0, acTables[0]);
+    write_huffman_table(file, 1, 1, acTables[1]);
 
-    printf("----------------Offsets----------------\n");
+    printf("\n----------------Offsets----------------\n");
     for (size_t i = 0; i < 17; i++)
     {
         printf("%i, ", dcTables[0]->offsets[i]);
@@ -347,22 +353,25 @@ int main(int argc, char const *argv[])
     // If more than 15 zeros then use code F0
     // Use 0 0 for end of block
 
+    printf("\n\nWrite Image Data\n");
     // Start of Scan
     write_start_of_scan(file);
 
 
     // Huffman data
-    // fwrite(huffman_data, sizeof(huffman_data) * sizeof(unsigned char), sizeof(huffman_data), file);
     unsigned char *it;
     int i = 0;
     for (it = cvector_begin(huffman_data_vec); it != cvector_end(huffman_data_vec); ++it) {
-        // printf("v[%d] = %c\n", i, *it);
         fputc(*it, file);
         ++i;
     }
+    cvector_free(huffman_data_vec);
+
     // End of Image
     fputc(0xFF, file);
     fputc(EOI, file);
+
+    free_image(image);
 
     fclose(file);
     return 0;

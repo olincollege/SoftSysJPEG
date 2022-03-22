@@ -7,7 +7,7 @@ int read_bmp(BMP * bmp, Image * image) {
     image->width = get_width(bmp);
     image->height = get_height(bmp);
 
-    image->blockHeight = (image->height + 7) / 8; // TODO figure out why theres a plus 7 here
+    image->blockHeight = (image->height + 7) / 8;
     image->blockWidth = (image->width + 7) / 8;
     printf("size | w:%i h:%i\n", image->width, image->height);
     printf("blocks | w:%i h:%i \n", image->blockHeight, image->blockWidth);
