@@ -451,7 +451,7 @@ int main(int argc, char const *argv[])
     // printf("%i %i %i\n", y,cb,cr);
     // return 0;
     Image * image = malloc(sizeof(Image));
-    BMP* bmp = bopen("include/data/big.bmp");
+    BMP* bmp = bopen("include/data/beeeeeeg.bmp");
     // bmp = fopen("include/data/smalldsf.bmp", "r+");
     // // read in the bmp TODO figure out why only 24 bit images work
     if (read_bmp(bmp, image)) {
