@@ -4,4 +4,4 @@ Run from root dir
 
 ```make -C build/```
 
-```./build/read_bmp_to_array```
+```./build/bmp_to_jpg [path/to/input.bmp]```
