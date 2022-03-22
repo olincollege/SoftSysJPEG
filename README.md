@@ -1,4 +1,4 @@
-Run from root dir
+Run from project root
 
 ```cmake -B build/ -S src/```
 
