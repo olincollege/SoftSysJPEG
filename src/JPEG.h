@@ -7,7 +7,10 @@
 #include <string.h>
 #include "cvector.h"
 #include "cbmp.h"
+#include "read_bmp_to_array.h"
 #include <stdint.h>
+#include "dct.h"
+typedef unsigned int uint;
 typedef unsigned char byte;
 #define ROUND_DIV(a,b) ((a<0) ^ (b<0)) ? (a - b/2)/b: (a + b/2)/b
 #define MAT_SIZE 8
@@ -250,3 +253,10 @@ HuffmanTable hACTableCbCr = {
 
 HuffmanTable* const dcTables[] = { &hDCTableY, &hDCTableCbCr, &hDCTableCbCr };
 HuffmanTable* const acTables[] = { &hACTableY, &hACTableCbCr, &hACTableCbCr };
+
+int read_bmp(BMP * bmp, Image * image);
+void rgb_to_ycrcb(Image *image);
+void chroma_downsample(int* cb, int* cr, int height, int width);
+void slice_to_mat(int* arr, gsl_matrix *mat);
+void mat_to_slice(int* arr, gsl_matrix *mat);
+void dct_slice(int* slice);

@@ -76,5 +76,5 @@ int main(int argc, char const *argv[])
         if (table[i]!=0) { printf("%i, %i\n", i, table[i]); }
     }
     //sanity check
-    printf("%d\n", root->left->left->data);
+    printf("%d\n", root->left->left->data); // should print 255
 }

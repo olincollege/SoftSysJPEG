@@ -4,6 +4,7 @@
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
 
+
 #define MAT_SIZE 8
 
 int sample_slice[64] = {154, 123, 123, 123, 123, 123, 123, 136,
@@ -15,29 +16,26 @@ int sample_slice[64] = {154, 123, 123, 123, 123, 123, 123, 136,
                             123, 105, 110, 149, 136, 136, 180, 166,
                             110, 136, 123, 123, 123, 136, 154, 136};
 
-/**
- * @brief 
- * Encodes a 64-elem double array representing an image slice to
- * an 8x8 gsl matrix
- * 
- * @param arr : double array
- * @param n1 : int for i dimension
- * @param n2 : int for j dimension
- */
 void slice_to_mat(int* arr, gsl_matrix *mat){
     for (int i = 0; i < 64; i++){
         gsl_matrix_set(mat, i%8, i/8, arr[i]-128);
     }
 }
 
-gsl_matrix* dct(int* slice, gsl_matrix *res){
+void mat_to_slice(int* arr, gsl_matrix *mat){
+    for (int i = 0; i < 64; i++){
+        arr[i] = round(gsl_matrix_get(mat, i%8, i/8));
+    }
+}
+
+void dct_slice(int* slice){
     const float scale = sqrt(0.25);
     const float pi = 3.14159265;
     const float row_1 = sqrt(0.125);
     // Allocate matrices
     gsl_matrix *t = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
     gsl_matrix *m = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
-
+    gsl_matrix *res = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
     // Write the int array to the matrix
     slice_to_mat(slice, m);
 
@@ -56,29 +54,14 @@ gsl_matrix* dct(int* slice, gsl_matrix *res){
     //multiply into DCT math
     gsl_matrix *inter = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
     gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, t, m, 0.0, inter);
-    gsl_blas_dgemm(CblasNoTrans, CblasNoTrans, 1.0, inter, t, 0.0, res);
+    gsl_blas_dgemm(CblasNoTrans, CblasTrans, 1.0, inter, t, 0.0, res);
     
     // free matrices declared in this function
     gsl_matrix_free(t);
     gsl_matrix_free(m);
     gsl_matrix_free(inter);
-    return res;
+
+    // Save to to inputted slice
+    mat_to_slice(slice, res);
 }
 
-int main(){
-    gsl_matrix *res = gsl_matrix_alloc(MAT_SIZE, MAT_SIZE);
-    res = dct(sample_slice, res);
-    
-    for (int i = 0; i < 8; i++){
-        for (int j = 0; j < 8; j++){
-            if (j != 7){
-                printf("%f ", gsl_matrix_get(res, i, j));
-            } else{
-                printf("%f\n", gsl_matrix_get(res, i, j));
-            }
-        }
-    }
-    
-    // free the res matrix
-    gsl_matrix_free(res);
-}
