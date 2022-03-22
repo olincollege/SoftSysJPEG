@@ -7,7 +7,7 @@
 #include <string.h>
 #include "cvector.h"
 #include "cbmp.h"
-
+#include <stdint.h>
 typedef unsigned char byte;
 #define ROUND_DIV(a,b) ((a<0) ^ (b<0)) ? (a - b/2)/b: (a + b/2)/b
 #define MAT_SIZE 8
@@ -113,7 +113,7 @@ typedef unsigned int* QuantizationTable;
 typedef struct table {
     unsigned char offsets[17];
     unsigned char symbols[176];
-    unsigned char codes[176];
+    uint codes[176];
     
 } HuffmanTable;
 

@@ -242,7 +242,7 @@ void write_start_of_scan(FILE * file) {
 }
 
 void generateCodes(HuffmanTable *hTable) {
-    uint code = 0;
+    uint16_t code = 0;
     for (uint i = 0; i < 16; ++i) {
         for (uint j = hTable->offsets[i]; j < hTable->offsets[i + 1]; ++j) {
             hTable->codes[j] = code;
@@ -284,8 +284,10 @@ void writeBit(uint bit, unsigned char** data) {
 
 void writeBits(uint bits, uint length, unsigned char** data) {
     for (uint i = 1; i <= length; ++i) {
+        // printf("%s", (bits >> (length - i) & 1) ? "1":"0");
         writeBit(bits >> (length - i), data);
     }
+    //printf("\n");
 }
 
 uint bitLength(int v) {
@@ -305,6 +307,7 @@ void encodeBlockComponent(
     HuffmanTable* acTable
 ) {
     // encode DC value
+    // printf("\n");
     int coeff = component[0] - *previousDC;
     *previousDC = component[0];
 
@@ -317,6 +320,8 @@ void encodeBlockComponent(
     uint code = 0;
     uint codeLength = 0;
     getCode(dcTable, coeffLength, &code, &codeLength);
+    // printf("\n\n%i %i DC\n", code, coeff);
+    // printf("%i %i\n", codeLength, codeLength);
     writeBits(code, codeLength, data);
     writeBits(coeff, coeffLength, data);
 
@@ -331,11 +336,16 @@ void encodeBlockComponent(
 
         if (i == 64) {
             getCode(acTable, 0x00, &code, &codeLength);
+        // printf("\n\n%i %i end\n", code, coeff);
+        // printf("%i %i\n", codeLength, coeffLength);
             writeBits(code, codeLength, data);
+            return;
         }
 
         while (numZeroes >= 16) {
             getCode(acTable, 0xF0, &code, &codeLength);
+        // printf("\n\n%i %i 0chunk\n", code, coeff);
+        // printf("%i %i\n", codeLength, coeffLength);
             writeBits(code, codeLength, data);
             numZeroes -= 16;
         }
@@ -349,8 +359,10 @@ void encodeBlockComponent(
         }
 
         // find symbol in table
-        byte symbol = numZeroes << 4 | coeffLength;
+        byte symbol = (numZeroes << 4) | coeffLength;
         getCode(acTable, symbol, &code, &codeLength);
+        // printf("\n\n%i %i\n", code, coeff);
+        // printf("%i %i\n", codeLength, coeffLength);
         writeBits(code, codeLength, data);
         writeBits(coeff, coeffLength, data);
     }
@@ -360,7 +372,7 @@ void encode_huffman(Image * image, unsigned char ** huffmanData) {
 
     int previousDCs[3] = { 0 };
 
-    for (uint i = 0; i < 2; ++i) {
+    for (uint i = 0; i < 3; ++i) {
         // if (!dcTables[i]->set) {
             generateCodes(dcTables[i]);
         // }
@@ -375,19 +387,19 @@ void encode_huffman(Image * image, unsigned char ** huffmanData) {
             encodeBlockComponent(
                         huffmanData,
                         image->blocks[y * image->blockWidth + x].y,
-                        &previousDCs[0],
+                        &(previousDCs[0]),
                         dcTables[0],
                         acTables[0]);
             encodeBlockComponent(
                         huffmanData,
-                        image->blocks[y * image->blockWidth + x].cr,
-                        &previousDCs[1],
+                        image->blocks[y * image->blockWidth + x].cb,
+                        &(previousDCs[1]),
                         dcTables[1],
                         acTables[1]);
             encodeBlockComponent(
                         huffmanData,
-                        image->blocks[y * image->blockWidth + x].cb,
-                        &previousDCs[2],
+                        image->blocks[y * image->blockWidth + x].cr,
+                        &(previousDCs[2]),
                         dcTables[2],
                         acTables[2]);
             
@@ -439,7 +451,7 @@ int main(int argc, char const *argv[])
     // printf("%i %i %i\n", y,cb,cr);
     // return 0;
     Image * image = malloc(sizeof(Image));
-    BMP* bmp = bopen("include/data/smalldsf.bmp");
+    BMP* bmp = bopen("include/data/big.bmp");
     // bmp = fopen("include/data/smalldsf.bmp", "r+");
     // // read in the bmp TODO figure out why only 24 bit images work
     if (read_bmp(bmp, image)) {
